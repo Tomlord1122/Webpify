@@ -21,6 +21,29 @@
 
 	const items = $state<UploadItem[]>([]);
 	let quality = $state(0.8); // 0..1
+	let lastConvertedQuality = $state<number | null>(null);
+
+	// Reset conversion status when quality changes
+	$effect(() => {
+		if (lastConvertedQuality !== null && lastConvertedQuality !== quality) {
+			// Quality changed, reset all done items to queued for re-conversion
+			for (const item of items) {
+				if (item.status === 'done') {
+					item.status = 'queued';
+					// Clean up old output resources
+					if (item.outputUrl) {
+						URL.revokeObjectURL(item.outputUrl);
+						item.outputUrl = undefined;
+					}
+					item.outputBlob = undefined;
+					item.outputName = undefined;
+					item.sizeAfter = undefined;
+				}
+			}
+		}
+		lastConvertedQuality = quality;
+	});
+
 	const hasQueued = $derived(items.some((i) => i.status === 'queued' || i.status === 'error'));
 	const hasDone = $derived(items.some((i) => i.status === 'done' && i.outputBlob));
 	let selectedPreviewItem = $state<UploadItem | null>(null);
@@ -89,17 +112,28 @@
 
 	async function convertAll() {
 		for (const item of items) {
-			if (item.status !== 'queued' && item.status !== 'error') continue;
+			// Skip items that are already being converted
+			if (item.status === 'converting') continue;
+
 			item.status = 'converting';
 			try {
-				const blob = await convertImageToWebP(item.file, quality);
-				const outputName = item.file.name.replace(/\.(jpe?g|png)$/i, '') + '.webp';
-				const url = URL.createObjectURL(blob);
-				item.outputBlob = blob;
-				item.outputUrl = url;
-				item.outputName = outputName;
-				item.sizeAfter = blob.size;
-				item.status = 'done';
+				// Check if we already have a Live Preview result for this item
+				if (item.outputBlob && item.sizeAfter && item.outputUrl) {
+					// Reuse the Live Preview conversion result
+					const outputName = item.file.name.replace(/\.(jpe?g|png)$/i, '') + '.webp';
+					item.outputName = outputName;
+					item.status = 'done';
+				} else {
+					// No Live Preview result available, perform conversion
+					const blob = await convertImageToWebP(item.file, quality);
+					const outputName = item.file.name.replace(/\.(jpe?g|png)$/i, '') + '.webp';
+					const url = URL.createObjectURL(blob);
+					item.outputBlob = blob;
+					item.outputUrl = url;
+					item.outputName = outputName;
+					item.sizeAfter = blob.size;
+					item.status = 'done';
+				}
 			} catch (err) {
 				item.status = 'error';
 				item.errorMessage = err instanceof Error ? err.message : 'Failed to convert to WebP.';
@@ -280,14 +314,21 @@
 				{quality}
 				onWebPGenerated={(blob, size) => {
 					if (selectedPreviewItem) {
-						selectedPreviewItem.sizeAfter = size;
-						if (selectedPreviewItem.outputBlob && selectedPreviewItem.outputUrl) {
+						// Clean up previous URL if it exists
+						if (selectedPreviewItem.outputUrl) {
 							URL.revokeObjectURL(selectedPreviewItem.outputUrl);
 						}
+						
+						// Set the new conversion results - but keep status as 'queued'
+						// This allows Convert All to reuse this result while ensuring consistency
+						selectedPreviewItem.sizeAfter = size;
 						selectedPreviewItem.outputBlob = blob;
 						selectedPreviewItem.outputUrl = URL.createObjectURL(blob);
 						selectedPreviewItem.outputName =
 							selectedPreviewItem.file.name.replace(/\.(jpe?g|png)$/i, '') + '.webp';
+						
+						// DON'T change status - let Convert All handle that
+						// This ensures Convert All will process this item and can reuse the Live Preview result
 					}
 				}}
 			/>
