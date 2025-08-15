@@ -221,7 +221,11 @@
 		<div class="flex flex-col gap-4 p-4 sm:p-6">
 			<div class="prose prose-sm font-serif text-gray-700 sm:prose-base">
 				<p>
-					Upload JPEG or PNG images and convert them to <code>webp</code> format.
+					<span>
+						📷 <strong>Upload JPEG or PNG images</strong> and convert them to <code>webp</code> format!<br>
+						⚠️ <strong>Note:</strong> Safari and iOS may not support WebP conversion properly due to technical limitations.<br>
+						<strong>🖥️ For best results, please use Chrome, Firefox, or Edge on desktop.</strong>
+					</span>
 				</p>
 			</div>
 
