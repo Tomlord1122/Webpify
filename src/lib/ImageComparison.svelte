@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { convertImageToWebP } from './imageConverter.js';
 
 	interface Props {
 		originalFile: File;
@@ -36,8 +37,8 @@
 
 		(async () => {
 			try {
-				// Convert to WebP
-				const webpBlob = await convertToWebP(originalFile, quality);
+				// Convert to WebP using shared function
+				const webpBlob = await convertImageToWebP(originalFile, quality);
 				webpUrl = URL.createObjectURL(webpBlob);
 				webpSize = webpBlob.size;
 
@@ -57,7 +58,7 @@
 
 		(async () => {
 			try {
-				const webpBlob = await convertToWebP(originalFile, quality);
+				const webpBlob = await convertImageToWebP(originalFile, quality);
 				if (webpUrl) URL.revokeObjectURL(webpUrl);
 				webpUrl = URL.createObjectURL(webpBlob);
 				webpSize = webpBlob.size;
@@ -67,47 +68,6 @@
 			}
 		})();
 	});
-
-	async function convertToWebP(file: File, quality: number): Promise<Blob> {
-		const bitmap = await createImageBitmap(file).catch(() => null);
-		if (bitmap) {
-			const canvas = document.createElement('canvas');
-			canvas.width = bitmap.width;
-			canvas.height = bitmap.height;
-			const ctx = canvas.getContext('2d');
-			if (!ctx) throw new Error('Canvas not supported');
-			ctx.drawImage(bitmap, 0, 0);
-			const blob = await new Promise<Blob>((resolve, reject) => {
-				canvas.toBlob(
-					(b) => (b ? resolve(b) : reject(new Error('Blob conversion failed'))),
-					'image/webp',
-					quality
-				);
-			});
-			return blob;
-		}
-
-		// Fallback
-		const img = new Image();
-		img.decoding = 'async';
-		img.src = URL.createObjectURL(file);
-		await img.decode();
-		const canvas = document.createElement('canvas');
-		canvas.width = img.naturalWidth;
-		canvas.height = img.naturalHeight;
-		const ctx = canvas.getContext('2d');
-		if (!ctx) throw new Error('Canvas not supported');
-		ctx.drawImage(img, 0, 0);
-		const blob = await new Promise<Blob>((resolve, reject) => {
-			canvas.toBlob(
-				(b) => (b ? resolve(b) : reject(new Error('Blob conversion failed'))),
-				'image/webp',
-				quality
-			);
-		});
-		URL.revokeObjectURL(img.src);
-		return blob;
-	}
 
 	function handleMouseDown(event: MouseEvent) {
 		event.stopPropagation(); // Prevent image panning

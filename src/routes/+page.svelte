@@ -2,6 +2,7 @@
 	import { slide, fade } from 'svelte/transition';
 	import JSZip from 'jszip';
 	import ImageComparison from '$lib/ImageComparison.svelte';
+	import { convertImageToWebP } from '$lib/imageConverter.js';
 
 	// Types for each uploaded item
 	type UploadStatus = 'queued' | 'converting' | 'done' | 'error';
@@ -91,7 +92,7 @@
 			if (item.status !== 'queued' && item.status !== 'error') continue;
 			item.status = 'converting';
 			try {
-				const blob = await imageFileToWebP(item.file, quality);
+				const blob = await convertImageToWebP(item.file, quality);
 				const outputName = item.file.name.replace(/\.(jpe?g|png)$/i, '') + '.webp';
 				const url = URL.createObjectURL(blob);
 				item.outputBlob = blob;
@@ -104,47 +105,6 @@
 				item.errorMessage = err instanceof Error ? err.message : 'Failed to convert to WebP.';
 			}
 		}
-	}
-
-	async function imageFileToWebP(file: File, quality: number): Promise<Blob> {
-		const bitmap = await createImageBitmap(file).catch(() => null);
-		if (bitmap) {
-			const canvas = document.createElement('canvas');
-			canvas.width = bitmap.width;
-			canvas.height = bitmap.height;
-			const ctx = canvas.getContext('2d');
-			if (!ctx) throw new Error('Canvas not supported');
-			ctx.drawImage(bitmap, 0, 0);
-			const blob = await new Promise<Blob>((resolve, reject) => {
-				canvas.toBlob(
-					(b) => (b ? resolve(b) : reject(new Error('Blob conversion failed'))),
-					'image/webp',
-					quality
-				);
-			});
-			return blob;
-		}
-		// Fallback for environments without createImageBitmap
-		const img = new Image();
-		img.decoding = 'async';
-		img.loading = 'eager';
-		img.src = URL.createObjectURL(file);
-		await img.decode();
-		const canvas = document.createElement('canvas');
-		canvas.width = img.naturalWidth;
-		canvas.height = img.naturalHeight;
-		const ctx = canvas.getContext('2d');
-		if (!ctx) throw new Error('Canvas not supported');
-		ctx.drawImage(img, 0, 0);
-		const blob = await new Promise<Blob>((resolve, reject) => {
-			canvas.toBlob(
-				(b) => (b ? resolve(b) : reject(new Error('Blob conversion failed'))),
-				'image/webp',
-				quality
-			);
-		});
-		URL.revokeObjectURL(img.src);
-		return blob;
 	}
 
 	function formatBytes(bytes: number): string {

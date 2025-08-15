@@ -9,4 +9,3 @@ A simple web app to convert images to WebP format.
 - Zoom and pan images
 - Keyboard shortcuts
 - Responsive design
-
