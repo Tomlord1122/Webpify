@@ -23,6 +23,7 @@
 	let isPanning = $state(false);
 	let lastPanX = $state(0);
 	let lastPanY = $state(0);
+	let hasInteracted = $state(false);
 
 	// Generate URLs and WebP conversion
 	$effect(() => {
@@ -159,6 +160,7 @@
 
 		if (isIntentionalZoom) {
 			event.preventDefault();
+			hasInteracted = true; // Mark that user has interacted with the component
 
 			const delta = -event.deltaY; // Invert for natural direction
 			const scaleFactor = delta > 0 ? 1.1 : 0.9;
@@ -181,6 +183,8 @@
 		if ((event.target as HTMLElement).closest('[data-divider]')) {
 			return;
 		}
+
+		hasInteracted = true; // Mark that user has interacted with the component
 
 		if (scale <= 1) return; // Only allow panning when zoomed in
 
@@ -219,19 +223,41 @@
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
+		// Only handle keys when this component has focus or when explicitly targeting this element
+		if (!containerRef?.contains(event.target as Element) && event.target !== containerRef) {
+			return;
+		}
+
+		hasInteracted = true; // Mark interaction
+
 		// Handle keyboard navigation for accessibility
 		switch (event.key) {
 			case 'Enter':
-			case ' ':
-				// Reset zoom on Enter or Space
+				// Reset zoom on Enter - force focus first to ensure it works
+				if (containerRef) {
+					containerRef.focus();
+				}
 				resetZoom();
 				event.preventDefault();
+				event.stopPropagation();
+				break;
+			case ' ':
+				// Reset zoom on Space - only if no other element is focused
+				if (
+					document.activeElement === containerRef ||
+					containerRef?.contains(document.activeElement)
+				) {
+					resetZoom();
+					event.preventDefault();
+					event.stopPropagation();
+				}
 				break;
 			case '+':
 			case '=':
 				// Zoom in
 				scale = Math.min(3, scale * 1.1);
 				event.preventDefault();
+				event.stopPropagation();
 				break;
 			case '-':
 				// Zoom out
@@ -241,38 +267,67 @@
 					panY = 0;
 				}
 				event.preventDefault();
+				event.stopPropagation();
 				break;
 			case 'ArrowLeft':
 				if (scale > 1) {
 					panX += 20;
 					event.preventDefault();
+					event.stopPropagation();
 				}
 				break;
 			case 'ArrowRight':
 				if (scale > 1) {
 					panX -= 20;
 					event.preventDefault();
+					event.stopPropagation();
 				}
 				break;
 			case 'ArrowUp':
 				if (scale > 1) {
 					panY += 20;
 					event.preventDefault();
+					event.stopPropagation();
 				}
 				break;
 			case 'ArrowDown':
 				if (scale > 1) {
 					panY -= 20;
 					event.preventDefault();
+					event.stopPropagation();
 				}
 				break;
 		}
 	}
 
+	// Global keyboard handler for Enter key reset
+	function handleGlobalKeyDown(event: KeyboardEvent) {
+		// Only handle Enter key for reset when component has been interacted with
+		if (event.key === 'Enter' && hasInteracted && (scale !== 1 || panX !== 0 || panY !== 0)) {
+			// Make sure we're not interfering with form inputs or other interactive elements
+			const target = event.target as HTMLElement;
+			if (
+				target.tagName === 'INPUT' ||
+				target.tagName === 'TEXTAREA' ||
+				target.tagName === 'BUTTON' ||
+				target.isContentEditable
+			) {
+				return;
+			}
+
+			resetZoom();
+			event.preventDefault();
+		}
+	}
+
 	onMount(() => {
+		// Add global keyboard listener for Enter key
+		document.addEventListener('keydown', handleGlobalKeyDown);
+
 		return () => {
 			if (originalUrl) URL.revokeObjectURL(originalUrl);
 			if (webpUrl) URL.revokeObjectURL(webpUrl);
+			document.removeEventListener('keydown', handleGlobalKeyDown);
 		};
 	});
 </script>
@@ -381,23 +436,23 @@
 				</div>
 
 				<!-- Labels -->
-				<div class="absolute top-2 left-2 z-20 rounded bg-black/70 px-2 py-1 text-xs text-white">
+				<div class="absolute top-2 left-2 z-10 rounded bg-black/70 px-2 py-1 text-xs text-white">
 					Original
 				</div>
-				<div class="absolute top-2 right-2 z-20 rounded bg-black/70 px-2 py-1 text-xs text-white">
+				<div class="absolute top-2 right-2 z-10 rounded bg-black/70 px-2 py-1 text-xs text-white">
 					WebP
 				</div>
 
 				<!-- Zoom Instructions -->
 				{#if scale === 1}
 					<div
-						class="absolute bottom-2 left-1/2 z-20 -translate-x-1/2 transform rounded bg-black/70 px-2 py-1 text-xs text-white"
+						class="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 transform rounded bg-black/70 px-2 py-1 text-xs text-white"
 					>
 						Pinch or Cmd+scroll to zoom • Drag divider to compare • +/- keys to zoom
 					</div>
 				{:else}
 					<div
-						class="absolute bottom-2 left-1/2 z-20 -translate-x-1/2 transform rounded bg-black/70 px-2 py-1 text-xs text-white"
+						class="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 transform rounded bg-black/70 px-2 py-1 text-xs text-white"
 					>
 						Drag to move image • Arrow keys to pan • Enter to reset
 					</div>

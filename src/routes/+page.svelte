@@ -209,7 +209,7 @@
 </script>
 
 <div
-	class=" sticky top-0 z-10 flex flex-1 items-center rounded-lg rounded-l-2xl border border-gray-200 bg-transparent/60 shadow-lg
+	class=" sticky top-0 z-20 flex flex-1 items-center rounded-lg rounded-l-2xl border border-gray-200 bg-transparent/60 shadow-lg
 				shadow-gray-300 backdrop-blur transition-all duration-300 hover:scale-105 hover:bg-gray-100 supports-[backdrop-filter]:bg-transparent/60"
 >
 	<img
