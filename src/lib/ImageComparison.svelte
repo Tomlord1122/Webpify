@@ -150,12 +150,17 @@
 
 	// Zoom and pan functionality
 	function handleWheel(event: WheelEvent) {
-		event.preventDefault();
+		// For macOS trackpad: Only respond to pinch gestures (Ctrl+wheel)
+		// For mouse: Respond to wheel with some modifier key to avoid accidental zoom
+		const isIntentionalZoom =
+			event.ctrlKey || // Pinch gesture or Ctrl+scroll
+			event.metaKey || // Cmd+scroll on macOS
+			event.altKey; // Alt+scroll
 
-		// Handle macOS trackpad pinch zoom
-		if (event.ctrlKey) {
-			// This is a pinch gesture on macOS/trackpad
-			const delta = -event.deltaY; // Invert for natural pinch direction
+		if (isIntentionalZoom) {
+			event.preventDefault();
+
+			const delta = -event.deltaY; // Invert for natural direction
 			const scaleFactor = delta > 0 ? 1.1 : 0.9;
 			const newScale = Math.max(0.5, Math.min(3, scale * scaleFactor));
 
@@ -167,21 +172,8 @@
 					panY = 0;
 				}
 			}
-		} else {
-			// Regular mouse wheel scroll (for mouse users)
-			const delta = event.deltaY;
-			const scaleFactor = delta > 0 ? 0.9 : 1.1;
-			const newScale = Math.max(0.5, Math.min(3, scale * scaleFactor));
-
-			if (newScale !== scale) {
-				scale = newScale;
-				// Reset pan when zooming out to 1x
-				if (scale === 1) {
-					panX = 0;
-					panY = 0;
-				}
-			}
 		}
+		// For regular scroll without modifier keys, do nothing (allow page scroll)
 	}
 
 	function handleImageMouseDown(event: MouseEvent) {
@@ -332,7 +324,7 @@
 				onkeydown={handleKeyDown}
 				style="cursor: {isPanning ? 'grabbing' : scale > 1 ? 'grab' : 'default'}"
 				role="button"
-				aria-label="Interactive image comparison viewer - pinch or scroll to zoom, drag to pan when zoomed in, use +/- to zoom, arrows to pan, Enter to reset"
+				aria-label="Interactive image comparison viewer - pinch or Cmd+scroll to zoom, drag to pan when zoomed in, use +/- to zoom, arrows to pan, Enter to reset"
 				tabindex="0"
 			>
 				<!-- Original Image (Left Side) -->
@@ -401,7 +393,7 @@
 					<div
 						class="absolute bottom-2 left-1/2 z-20 -translate-x-1/2 transform rounded bg-black/70 px-2 py-1 text-xs text-white"
 					>
-						Pinch or scroll to zoom • Drag divider to compare • +/- keys to zoom
+						Pinch or Cmd+scroll to zoom • Drag divider to compare • +/- keys to zoom
 					</div>
 				{:else}
 					<div

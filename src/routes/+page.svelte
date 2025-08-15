@@ -208,21 +208,19 @@
 	}
 </script>
 
-	<div
-		class=" sticky top-0 z-10 rounded-lg rounded-l-2xl border border-gray-200 bg-transparent/60 shadow-lg shadow-gray-300 backdrop-blur transition-all
-				duration-300 hover:scale-105 hover:bg-gray-100 supports-[backdrop-filter]:bg-transparent/60 flex-1 flex items-center"
-	>
+<div
+	class=" sticky top-0 z-10 flex flex-1 items-center rounded-lg rounded-l-2xl border border-gray-200 bg-transparent/60 shadow-lg
+				shadow-gray-300 backdrop-blur transition-all duration-300 hover:scale-105 hover:bg-gray-100 supports-[backdrop-filter]:bg-transparent/60"
+>
 	<img
 		src="/app_icon.png"
 		alt="Tomlord"
 		class="mr-2 h-12 w-12 rounded-2xl border-2 border-gray-300 sm:h-15 sm:w-15"
 	/>
-		<div class="container mx-auto flex items-center">
-			<h1 class="page-title p-3 pb-3 font-serif text-2xl text-gray-900 sm:text-3xl">
-				Webpify
-			</h1>
-		</div>
+	<div class="container mx-auto flex items-center">
+		<h1 class="page-title p-3 pb-3 font-serif text-2xl text-gray-900 sm:text-3xl">Webpify</h1>
 	</div>
+</div>
 
 <main class="mt-6 flex min-h-screen flex-col gap-4">
 	<section class="rounded-lg border border-gray-300 bg-white shadow-sm">
